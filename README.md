@@ -64,18 +64,40 @@ cp .env.example .env
 PORT=3000
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=gu123456
+DB_PASSWORD=your_password
 DB_NAME=social_todo
 JWT_SECRET=your_secret_key
 ```
 
 ### 3. 初始化数据库
 
+#### 方法一：使用命令行
+
 ```bash
 mysql -u root -p < database/schema.sql
 ```
 
-### 4. 启动服务器
+#### 方法二：使用 Node.js 脚本（推荐）
+
+```bash
+node init-db.js
+```
+
+#### 方法三：手动执行
+
+登录 MySQL 后执行 `database/schema.sql` 中的 SQL 语句。
+
+### 4. （可选）导入示例数据
+
+如果想快速体验功能，可以导入示例数据：
+
+```bash
+mysql -u root -p < database/seed.sql
+```
+
+示例用户密码都是：`password123`
+
+### 5. 启动服务器
 
 ```bash
 npm start        # 生产模式
