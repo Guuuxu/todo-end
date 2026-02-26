@@ -17,7 +17,7 @@ const {
 router.use(authMiddleware)
 
 // Todo CRUD
-router.get('/', todoController.getMyTodos)
+router.get('/list', todoController.getMyTodos)
 router.get('/watching', todoController.getWatchingTodos)
 router.get('/:id', todoController.getTodoById)
 router.post('/', validateCreateTodo, todoController.createTodo)

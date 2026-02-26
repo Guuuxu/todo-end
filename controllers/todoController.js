@@ -14,12 +14,18 @@ const getMyTodos = async (req, res, next) => {
         t.*,
         (SELECT COUNT(*) FROM todo_watchers WHERE todo_id = t.id) as watcher_count,
         (SELECT COUNT(*) FROM likes WHERE todo_id = t.id) as like_count,
-        (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count
+        (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count,
+        (SELECT COUNT(*) FROM likes WHERE todo_id = t.id AND user_id = ?) as is_liked
       FROM todos t
       WHERE t.user_id = ?
       ORDER BY t.created_at DESC`,
-      [userId],
+      [userId, userId],
     )
+
+    // 将 is_liked 转换为布尔值
+    todos.forEach((todo) => {
+      todo.is_liked = todo.is_liked > 0
+    })
 
     success(res, todos)
   } catch (err) {
@@ -35,14 +41,23 @@ const getWatchingTodos = async (req, res, next) => {
       `SELECT 
         t.*,
         u.username as creator_name,
-        u.avatar as creator_avatar
+        u.avatar as creator_avatar,
+        (SELECT COUNT(*) FROM todo_watchers WHERE todo_id = t.id) as watcher_count,
+        (SELECT COUNT(*) FROM likes WHERE todo_id = t.id) as like_count,
+        (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count,
+        (SELECT COUNT(*) FROM likes WHERE todo_id = t.id AND user_id = ?) as is_liked
       FROM todos t
       INNER JOIN todo_watchers tw ON t.id = tw.todo_id
       INNER JOIN users u ON t.user_id = u.id
       WHERE tw.watcher_id = ?
       ORDER BY t.created_at DESC`,
-      [userId],
+      [userId, userId],
     )
+
+    // 将 is_liked 转换为布尔值
+    todos.forEach((todo) => {
+      todo.is_liked = todo.is_liked > 0
+    })
 
     success(res, todos)
   } catch (err) {
@@ -55,7 +70,17 @@ const getTodoById = async (req, res, next) => {
     const todoId = req.params.id
     const userId = req.user.id
 
-    const todos = await query('SELECT * FROM todos WHERE id = ?', [todoId])
+    const todos = await query(
+      `SELECT 
+        t.*,
+        (SELECT COUNT(*) FROM todo_watchers WHERE todo_id = t.id) as watcher_count,
+        (SELECT COUNT(*) FROM likes WHERE todo_id = t.id) as like_count,
+        (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count,
+        (SELECT COUNT(*) FROM likes WHERE todo_id = t.id AND user_id = ?) as is_liked
+      FROM todos t
+      WHERE t.id = ?`,
+      [userId, todoId],
+    )
 
     if (todos.length === 0) {
       return error(res, 'Todo 不存在', 1, 404)
@@ -73,6 +98,9 @@ const getTodoById = async (req, res, next) => {
     if (!isCreator && isWatcher.length === 0) {
       return error(res, '无权访问此 Todo', 1, 403)
     }
+
+    // 将 is_liked 转换为布尔值
+    todo.is_liked = todo.is_liked > 0
 
     success(res, todo)
   } catch (err) {
