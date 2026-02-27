@@ -9,9 +9,9 @@ USE social_todo;
 -- 注意：密码是 'password123' 经过 bcrypt 加密后的结果
 -- 实际使用时需要通过注册接口创建用户
 INSERT INTO users (username, email, password, avatar) VALUES
-('张三', 'zhangsan@example.com', '$2a$10$XqZ8J5K5K5K5K5K5K5K5KuO8J5K5K5K5K5K5K5K5K5K5K5K5K5K5K', 'https://via.placeholder.com/150'),
-('李四', 'lisi@example.com', '$2a$10$XqZ8J5K5K5K5K5K5K5K5KuO8J5K5K5K5K5K5K5K5K5K5K5K5K5K5K', 'https://via.placeholder.com/150'),
-('王五', 'wangwu@example.com', '$2a$10$XqZ8J5K5K5K5K5K5K5K5KuO8J5K5K5K5K5K5K5K5K5K5K5K5K5K5K', 'https://via.placeholder.com/150');
+('张三', 'zhangsan@example.com', '$2a$10$YK2onAaZ.Je50396/nGtiO6pRR6kqTvcK3rz4O3OvxdrOci1H9Waq', 'https://via.placeholder.com/150'),
+('李四', 'lisi@example.com', '$2a$10$YK2onAaZ.Je50396/nGtiO6pRR6kqTvcK3rz4O3OvxdrOci1H9Waq', 'https://via.placeholder.com/150'),
+('王五', 'wangwu@example.com', '$2a$10$YK2onAaZ.Je50396/nGtiO6pRR6kqTvcK3rz4O3OvxdrOci1H9Waq', 'https://via.placeholder.com/150');
 
 -- 插入示例 Todo
 INSERT INTO todos (user_id, title, description, is_completed, streak_count) VALUES

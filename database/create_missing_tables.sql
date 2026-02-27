@@ -1,7 +1,7 @@
--- 社交型 Todo 自律监督系统 - 数据库设计
-
-CREATE DATABASE IF NOT EXISTS social_todo 
-DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- ================================================
+-- 创建缺失的表
+-- 如果执行 seed.sql 时提示表不存在，先执行此脚本
+-- ================================================
 
 USE social_todo;
 
@@ -67,3 +67,7 @@ CREATE TABLE IF NOT EXISTS likes (
   UNIQUE KEY unique_like (todo_id, user_id),
   INDEX idx_todo_id (todo_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 验证表是否创建成功
+SHOW TABLES;
+
