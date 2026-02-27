@@ -25,10 +25,28 @@ const getRankings = async (req, res, next) => {
       LIMIT 20`,
     )
 
-    const rankedList = rankings.map((item, index) => ({
-      rank: index + 1,
-      ...item,
-    }))
+    // 为每个用户查询待办事项
+    const rankedList = await Promise.all(
+      rankings.map(async (item, index) => {
+        const todos = await query(
+          `SELECT 
+            t.*,
+            (SELECT COUNT(*) FROM todo_watchers WHERE todo_id = t.id) as watcher_count,
+            (SELECT COUNT(*) FROM likes WHERE todo_id = t.id) as like_count,
+            (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count
+          FROM todos t
+          WHERE t.user_id = ?
+          ORDER BY t.created_at DESC`,
+          [item.id],
+        )
+
+        return {
+          rank: index + 1,
+          ...item,
+          todos,
+        }
+      }),
+    )
 
     success(res, rankedList)
   } catch (err) {
@@ -57,7 +75,26 @@ const getMyRanking = async (req, res, next) => {
       [userId],
     )
 
-    success(res, result[0] || {})
+    const userRanking = result[0] || {}
+
+    // 如果用户存在，查询其待办事项
+    if (userRanking.id) {
+      const todos = await query(
+        `SELECT 
+          t.*,
+          (SELECT COUNT(*) FROM todo_watchers WHERE todo_id = t.id) as watcher_count,
+          (SELECT COUNT(*) FROM likes WHERE todo_id = t.id) as like_count,
+          (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count
+        FROM todos t
+        WHERE t.user_id = ?
+        ORDER BY t.created_at DESC`,
+        [userId],
+      )
+
+      userRanking.todos = todos
+    }
+
+    success(res, userRanking)
   } catch (err) {
     next(err)
   }

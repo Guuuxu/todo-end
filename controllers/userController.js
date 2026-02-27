@@ -43,4 +43,20 @@ const searchUsers = async (req, res, next) => {
   }
 }
 
-module.exports = { getCurrentUser, searchUsers }
+const updateUser = async (req, res, next) => {
+  try {
+    const userId = req.user.id
+    const { username, avatar } = req.body
+
+    const result = await query(
+      'UPDATE users SET username = ?, avatar = ? WHERE id = ?',
+      [username, avatar, userId],
+    )
+
+    success(res, result, '用户信息更新成功')
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { getCurrentUser, searchUsers, updateUser }
