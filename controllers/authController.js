@@ -5,6 +5,7 @@
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const https = require('https')
+const crypto = require('crypto')
 const { query } = require('../config/database')
 const jwtConfig = require('../config/jwt')
 const { success, error } = require('../utils/response')
@@ -118,15 +119,20 @@ const wechatLogin = async (req, res, next) => {
     const appid = process.env.WECHAT_APPID
     const secret = process.env.WECHAT_SECRET
 
+    let openid
+
+    // 如果没有配置微信 AppID，使用测试模式（直接使用 code 作为 openid）
     if (!appid || !secret) {
-      return error(res, '微信配置未设置', 1, 500)
-    }
+      console.log('[微信登录] 使用测试模式：未配置 WECHAT_APPID，直接使用 code 作为 openid')
+      // 测试模式：使用 code 的哈希值作为 openid（确保唯一性）
+      openid = 'test_' + crypto.createHash('md5').update(code).digest('hex')
+    } else {
+      // 正式模式：通过 code 换取 openid
+      openid = await getWechatOpenId(code, appid, secret)
 
-    // 通过 code 换取 openid
-    const openid = await getWechatOpenId(code, appid, secret)
-
-    if (!openid) {
-      return error(res, '微信授权失败', 1, 401)
+      if (!openid) {
+        return error(res, '微信授权失败', 1, 401)
+      }
     }
 
     // 查找或创建用户

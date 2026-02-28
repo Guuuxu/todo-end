@@ -69,6 +69,7 @@ DB_NAME=social_todo
 JWT_SECRET=your_secret_key
 
 # 微信小程序配置（可选）
+# 如果不配置，将使用测试模式（直接使用 code 的哈希值作为 openid）
 WECHAT_APPID=your_wechat_appid
 WECHAT_SECRET=your_wechat_secret
 ```
@@ -116,6 +117,7 @@ npm run dev      # 开发模式（需安装 nodemon）
 
 - POST `/api/auth/register` - 注册
 - POST `/api/auth/login` - 登录
+- POST `/api/auth/wechat` - 微信授权登录（测试模式：无需配置 AppID）
 
 ### 用户
 
