@@ -67,6 +67,10 @@ DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=social_todo
 JWT_SECRET=your_secret_key
+
+# 微信小程序配置（可选）
+WECHAT_APPID=your_wechat_appid
+WECHAT_SECRET=your_wechat_secret
 ```
 
 ### 3. 初始化数据库

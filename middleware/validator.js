@@ -52,9 +52,20 @@ const validateComment = (req, res, next) => {
   next()
 }
 
+const validateWechatLogin = (req, res, next) => {
+  const { code } = req.body
+
+  if (!code || code.trim().length === 0) {
+    return error(res, '微信 code 不能为空')
+  }
+
+  next()
+}
+
 module.exports = {
   validateRegister,
   validateLogin,
   validateCreateTodo,
   validateComment,
+  validateWechatLogin,
 }
