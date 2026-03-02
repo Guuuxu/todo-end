@@ -7,6 +7,11 @@ const { success, error } = require('../utils/response')
 
 const getMyTodos = async (req, res, next) => {
   try {
+    // 未登录时直接返回空数组
+    if (!req.user?.id) {
+      return success(res, [])
+    }
+
     const userId = req.user.id
 
     const todos = await query(
@@ -68,19 +73,26 @@ const getWatchingTodos = async (req, res, next) => {
 const getTodoById = async (req, res, next) => {
   try {
     const todoId = req.params.id
-    const userId = req.user.id
+    const currentUserId = req.user ? req.user.id : null
 
-    const todos = await query(
-      `SELECT 
+    // 构建 SQL 查询
+    let sql = `SELECT 
         t.*,
         (SELECT COUNT(*) FROM todo_watchers WHERE todo_id = t.id) as watcher_count,
         (SELECT COUNT(*) FROM likes WHERE todo_id = t.id) as like_count,
-        (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count,
-        (SELECT COUNT(*) FROM likes WHERE todo_id = t.id AND user_id = ?) as is_liked
-      FROM todos t
-      WHERE t.id = ?`,
-      [userId, todoId],
-    )
+        (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count`
+    
+    const params = []
+    
+    if (currentUserId) {
+      sql += `, (SELECT COUNT(*) FROM likes WHERE todo_id = t.id AND user_id = ?) as is_liked`
+      params.push(currentUserId)
+    }
+    
+    sql += ` FROM todos t WHERE t.id = ?`
+    params.push(todoId)
+
+    const todos = await query(sql, params)
 
     if (todos.length === 0) {
       return error(res, 'Todo 不存在', 1, 404)
@@ -88,19 +100,21 @@ const getTodoById = async (req, res, next) => {
 
     const todo = todos[0]
 
-    // 权限检查
-    const isCreator = todo.user_id === userId
-    const isWatcher = await query(
-      'SELECT id FROM todo_watchers WHERE todo_id = ? AND watcher_id = ?',
-      [todoId, userId],
-    )
+    // 如果已登录，检查权限（未登录时允许所有人查看）
+    if (currentUserId) {
+      const isCreator = todo.user_id === currentUserId
+      const isWatcher = await query(
+        'SELECT id FROM todo_watchers WHERE todo_id = ? AND watcher_id = ?',
+        [todoId, currentUserId],
+      )
 
-    if (!isCreator && isWatcher.length === 0) {
-      return error(res, '无权访问此 Todo', 1, 403)
+      if (!isCreator && isWatcher.length === 0) {
+        return error(res, '无权访问此 Todo', 1, 403)
+      }
+
+      // 将 is_liked 转换为布尔值
+      todo.is_liked = todo.is_liked > 0
     }
-
-    // 将 is_liked 转换为布尔值
-    todo.is_liked = todo.is_liked > 0
 
     success(res, todo)
   } catch (err) {
@@ -188,6 +202,47 @@ const updateTodo = async (req, res, next) => {
   }
 }
 
+const getUserTodos = async (req, res, next) => {
+  try {
+    const targetUserId = parseInt(req.params.user_id)
+    const currentUserId = req.user ? req.user.id : null
+
+    if (!targetUserId) {
+      return error(res, '请提供有效的用户ID', 1, 400)
+    }
+
+    // 构建 SQL 查询
+    let sql = `SELECT 
+        t.*,
+        (SELECT COUNT(*) FROM todo_watchers WHERE todo_id = t.id) as watcher_count,
+        (SELECT COUNT(*) FROM likes WHERE todo_id = t.id) as like_count,
+        (SELECT COUNT(*) FROM comments WHERE todo_id = t.id) as comment_count`
+    
+    const params = []
+    
+    if (currentUserId) {
+      sql += `, (SELECT COUNT(*) FROM likes WHERE todo_id = t.id AND user_id = ?) as is_liked`
+      params.push(currentUserId)
+    }
+    
+    sql += ` FROM todos t WHERE t.user_id = ? ORDER BY t.created_at DESC`
+    params.push(targetUserId)
+
+    const todos = await query(sql, params)
+
+    // 将 is_liked 转换为布尔值（仅当有登录用户时）
+    if (currentUserId) {
+      todos.forEach((todo) => {
+        todo.is_liked = todo.is_liked > 0
+      })
+    }
+
+    success(res, todos)
+  } catch (err) {
+    next(err)
+  }
+}
+
 const deleteTodo = async (req, res, next) => {
   try {
     const todoId = req.params.id
@@ -212,6 +267,7 @@ const deleteTodo = async (req, res, next) => {
 
 module.exports = {
   getMyTodos,
+  getUserTodos,
   getWatchingTodos,
   getTodoById,
   createTodo,

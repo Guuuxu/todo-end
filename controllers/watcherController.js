@@ -15,6 +15,7 @@ const addWatcher = async (req, res, next) => {
       return error(res, '请提供监督人ID')
     }
 
+    // 检查 Todo 是否存在且是当前用户创建的
     const todos = await query(
       'SELECT id FROM todos WHERE id = ? AND user_id = ?',
       [todoId, userId],
@@ -24,8 +25,28 @@ const addWatcher = async (req, res, next) => {
       return error(res, 'Todo 不存在或无权操作', 1, 404)
     }
 
+    // 不能邀请自己作为监督人
     if (watcher_id === userId) {
       return error(res, '不能邀请自己作为监督人')
+    }
+
+    // 检查被邀请的用户是否存在
+    const users = await query('SELECT id FROM users WHERE id = ?', [
+      watcher_id,
+    ])
+
+    if (users.length === 0) {
+      return error(res, '被邀请的用户不存在', 1, 404)
+    }
+
+    // 检查是否已经是监督人
+    const existingWatchers = await query(
+      'SELECT id FROM todo_watchers WHERE todo_id = ? AND watcher_id = ?',
+      [todoId, watcher_id],
+    )
+
+    if (existingWatchers.length > 0) {
+      return error(res, '该用户已经是监督人')
     }
 
     await query(
@@ -35,9 +56,6 @@ const addWatcher = async (req, res, next) => {
 
     success(res, null, '监督人添加成功')
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return error(res, '该用户已经是监督人')
-    }
     next(err)
   }
 }
@@ -45,6 +63,29 @@ const addWatcher = async (req, res, next) => {
 const getWatchers = async (req, res, next) => {
   try {
     const todoId = req.params.id
+    const userId = req.user.id
+
+    // 检查 Todo 是否存在
+    const todos = await query('SELECT id, user_id FROM todos WHERE id = ?', [
+      todoId,
+    ])
+
+    if (todos.length === 0) {
+      return error(res, 'Todo 不存在', 1, 404)
+    }
+
+    const todo = todos[0]
+
+    // 权限检查：只有创建者或监督人可以查看监督人列表
+    const isCreator = todo.user_id === userId
+    const isWatcher = await query(
+      'SELECT id FROM todo_watchers WHERE todo_id = ? AND watcher_id = ?',
+      [todoId, userId],
+    )
+
+    if (!isCreator && isWatcher.length === 0) {
+      return error(res, '无权查看此 Todo 的监督人', 1, 403)
+    }
 
     const watchers = await query(
       `SELECT 
@@ -54,7 +95,8 @@ const getWatchers = async (req, res, next) => {
         tw.created_at as watch_since
       FROM todo_watchers tw
       INNER JOIN users u ON tw.watcher_id = u.id
-      WHERE tw.todo_id = ?`,
+      WHERE tw.todo_id = ?
+      ORDER BY tw.created_at DESC`,
       [todoId],
     )
 
