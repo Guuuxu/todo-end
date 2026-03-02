@@ -35,6 +35,8 @@ router.get('/:id', todoController.getTodoById)
 router.use(authMiddleware)
 router.post('/', validateCreateTodo, todoController.createTodo)
 router.put('/:id', todoController.updateTodo)
+// 完成待办：标记完成或取消完成（必须在 /:id 之前，避免路由冲突）
+router.post('/:id/complete', todoController.completeTodo)
 router.delete('/:id', todoController.deleteTodo)
 
 // 监督功能

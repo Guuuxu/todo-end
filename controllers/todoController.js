@@ -243,6 +243,49 @@ const getUserTodos = async (req, res, next) => {
   }
 }
 
+const completeTodo = async (req, res, next) => {
+  try {
+    const todoId = req.params.id
+    const userId = req.user.id
+    const { is_completed } = req.body
+
+    // 检查 Todo 是否存在且是当前用户创建的
+    const todos = await query(
+      'SELECT * FROM todos WHERE id = ? AND user_id = ?',
+      [todoId, userId],
+    )
+
+    if (todos.length === 0) {
+      return error(res, 'Todo 不存在或无权操作', 1, 404)
+    }
+
+    const todo = todos[0]
+    const completed = is_completed !== undefined ? is_completed : true
+
+    // 更新完成状态
+    if (completed && !todo.is_completed) {
+      // 标记为完成，增加连续天数
+      await query(
+        'UPDATE todos SET is_completed = 1, streak_count = streak_count + 1 WHERE id = ?',
+        [todoId],
+      )
+      success(res, null, 'Todo 已完成')
+    } else if (!completed && todo.is_completed) {
+      // 取消完成，重置连续天数
+      await query(
+        'UPDATE todos SET is_completed = 0, streak_count = 0 WHERE id = ?',
+        [todoId],
+      )
+      success(res, null, 'Todo 已取消完成')
+    } else {
+      // 状态没有变化
+      success(res, null, '状态未改变')
+    }
+  } catch (err) {
+    next(err)
+  }
+}
+
 const deleteTodo = async (req, res, next) => {
   try {
     const todoId = req.params.id
@@ -272,5 +315,6 @@ module.exports = {
   getTodoById,
   createTodo,
   updateTodo,
+  completeTodo,
   deleteTodo,
 }
