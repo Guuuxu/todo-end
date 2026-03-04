@@ -36,6 +36,18 @@ const createComment = async (req, res, next) => {
     const userId = req.user.id
     const { content } = req.body
 
+    // 查询用户信息（包括头像）
+    const users = await query(
+      'SELECT username, avatar FROM users WHERE id = ?',
+      [userId],
+    )
+
+    if (users.length === 0) {
+      return error(res, '用户不存在', 1, 404)
+    }
+
+    const user = users[0]
+
     const result = await query(
       'INSERT INTO comments (todo_id, user_id, content) VALUES (?, ?, ?)',
       [todoId, userId, content],
@@ -48,6 +60,9 @@ const createComment = async (req, res, next) => {
         todo_id: todoId,
         user_id: userId,
         content,
+        created_at: new Date().toISOString(),
+        username: user.username,
+        avatar: user.avatar,
       },
       '评论成功',
     )
